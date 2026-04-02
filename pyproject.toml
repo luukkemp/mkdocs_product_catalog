@@ -6,7 +6,17 @@ build-backend = "setuptools.build_meta"
 name = "mkdocs-product-catalog"
 version = "0.1.0"
 description = "MkDocs plugin that generates a product catalog page from YAML files"
+readme = "README.md"
+license = "MIT"
 requires-python = ">=3.8"
+keywords = ["mkdocs", "mkdocs-plugin", "catalog", "documentation"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Topic :: Documentation",
+    "Topic :: Software Development :: Documentation",
+]
 dependencies = [
     "mkdocs>=1.4",
     "pyyaml>=6.0",
