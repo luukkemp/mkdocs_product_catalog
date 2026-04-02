@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=42"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mkdocs-product-catalog"
+version = "0.1.0"
+description = "MkDocs plugin that generates a product catalog page from YAML files"
+requires-python = ">=3.8"
+dependencies = [
+    "mkdocs>=1.4",
+    "pyyaml>=6.0",
+]
+
+[project.entry-points."mkdocs.plugins"]
+product-catalog = "mkdocs_product_catalog.plugin:ProductCatalogPlugin"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["mkdocs_product_catalog*"]
