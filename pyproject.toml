@@ -15,6 +15,9 @@ dependencies = [
 [project.entry-points."mkdocs.plugins"]
 product-catalog = "mkdocs_product_catalog.plugin:ProductCatalogPlugin"
 
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["mkdocs_product_catalog*"]

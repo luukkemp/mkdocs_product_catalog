@@ -1,0 +1,6 @@
+site_name: Test Site
+docs_dir: docs
+
+plugins:
+  - search
+  - product-catalog
