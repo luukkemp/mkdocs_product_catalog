@@ -1,0 +1,6 @@
+title: Beta Tool
+description: A tool with no icon, testing the acronym fallback.
+owners:
+  - Carol
+metadata:
+  status: experimental

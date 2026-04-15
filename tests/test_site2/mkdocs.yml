@@ -1,0 +1,11 @@
+site_name: Test Site
+docs_dir: docs
+
+nav:
+  - remote: index.md
+
+
+plugins:
+  - multirepo
+  - search
+  - product-catalog

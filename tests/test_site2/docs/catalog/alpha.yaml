@@ -1,0 +1,11 @@
+title: Alpha Service
+description: The first service in the catalog.
+url: https://alpha.example.com
+documentation: https://docs.example.com/alpha
+repository: https://github.com/example/alpha
+owners:
+  - Alice
+  - Bob
+metadata:
+  team: platform
+  dashboard: https://grafana.example.com/d/alpha
