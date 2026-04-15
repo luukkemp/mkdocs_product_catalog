@@ -3,12 +3,47 @@ import pytest
 
 from mkdocs_product_catalog.plugin import (
     _CONTENT_TAG_RE,
+    _effective_docs_dir,
     linkify,
     load_products,
     make_acronym,
     render_catalog_html,
     slugify,
 )
+
+
+# ── _effective_docs_dir ───────────────────────────────────────────────────────
+
+class TestEffectiveDocsDir:
+    """Tests for the multirepo-plugin compatibility helper."""
+
+    def test_local_page_single_segment(self):
+        # Page sits directly in docs_dir — one path component in src_path
+        result = _effective_docs_dir("/main/docs/catalog.md", "catalog.md", "/fallback")
+        assert result == "/main/docs"
+
+    def test_local_page_nested(self):
+        # Page in a sub-directory of docs_dir — two components in src_path
+        result = _effective_docs_dir("/main/docs/services/catalog.md", "services/catalog.md", "/fallback")
+        assert result == "/main/docs"
+
+    def test_multirepo_imported_page(self):
+        # Multirepo clones a repo to a temp dir; src_path is still relative
+        result = _effective_docs_dir(
+            "/tmp/xyz/repo/docs/services/catalog.md",
+            "services/catalog.md",
+            "/main/docs",
+        )
+        assert result == "/tmp/xyz/repo/docs"
+
+    def test_none_abs_src_returns_fallback(self):
+        assert _effective_docs_dir(None, "catalog.md", "/fallback") == "/fallback"
+
+    def test_none_src_path_returns_fallback(self):
+        assert _effective_docs_dir("/main/docs/catalog.md", None, "/fallback") == "/fallback"
+
+    def test_both_none_returns_fallback(self):
+        assert _effective_docs_dir(None, None, "/fallback") == "/fallback"
 
 
 # ── make_acronym ──────────────────────────────────────────────────────────────

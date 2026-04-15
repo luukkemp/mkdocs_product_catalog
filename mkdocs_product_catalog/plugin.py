@@ -462,6 +462,37 @@ def linkify(value):
     )
 
 
+def _effective_docs_dir(abs_src_path, src_path, fallback):
+    """Return the effective docs directory for a source file.
+
+    When the mkdocs-multirepo-plugin is used, pages from imported repos are
+    cloned into a temp directory that is unrelated to the main
+    ``config["docs_dir"]``.  By walking *up* as many path levels as there are
+    components in ``src_path`` (the relative path), we recover the root that
+    the relative path is anchored to — i.e. the effective docs_dir for that
+    specific file.
+
+    Examples
+    --------
+    Local page:
+        abs_src_path = /main/docs/catalog.md
+        src_path     = catalog.md        (1 segment)
+        → /main/docs/
+
+    Imported (multirepo) page:
+        abs_src_path = /tmp/xyz/repo/docs/services/catalog.md
+        src_path     = services/catalog.md  (2 segments)
+        → /tmp/xyz/repo/docs/
+    """
+    if not abs_src_path or not src_path:
+        return fallback
+    n_components = src_path.replace("\\", "/").count("/") + 1
+    result = abs_src_path
+    for _ in range(n_components):
+        result = os.path.dirname(result)
+    return result or fallback
+
+
 def load_products(yaml_dir):
     """Load and return all products from .yaml/.yml files in yaml_dir."""
     products = []
@@ -757,7 +788,17 @@ class ProductCatalogPlugin(BasePlugin):
         """
         def replace_tag(match):
             rel_dir = match.group(1).strip()
-            yaml_dir = os.path.join(self._docs_dir, rel_dir)
+            # Use the page's actual source location so that catalog directories
+            # from repos imported via mkdocs-multirepo-plugin are resolved
+            # against the temp dir where those repos were cloned, rather than
+            # against the main config["docs_dir"].
+            f = page.file
+            base = _effective_docs_dir(
+                getattr(f, "abs_src_path", None),
+                getattr(f, "src_path", None),
+                self._docs_dir,
+            )
+            yaml_dir = os.path.join(base, rel_dir)
             products = load_products(yaml_dir)
             return render_catalog_html(products, id_prefix=slugify(rel_dir) + "-")
 
@@ -789,7 +830,16 @@ class ProductCatalogPlugin(BasePlugin):
                     match = catalog_pattern.search(content)
                     if match:
                         catalog_dir = match.group(1)
-                        yaml_dir = os.path.join(docs_dir, catalog_dir)
+                        # Resolve YAML directory against the file's actual location.
+                        # This handles the multirepo-plugin case where files from
+                        # imported repos live in a temp directory that differs from
+                        # the main config["docs_dir"].
+                        effective_dir = _effective_docs_dir(
+                            getattr(file, 'abs_src_path', None),
+                            getattr(file, 'src_path', None),
+                            docs_dir,
+                        )
+                        yaml_dir = os.path.join(effective_dir, catalog_dir)
                         if os.path.isdir(yaml_dir):
                             products = load_products(yaml_dir)
 
@@ -797,6 +847,7 @@ class ProductCatalogPlugin(BasePlugin):
                                 {
                                     'title': p.get('title', 'Unknown Service'),
                                     'page': file.src_path,
+                                    'abs_page': getattr(file, 'abs_src_path', None),
                                     'modal_id': f"{slugify(catalog_dir)}-{slugify(p.get('title', 'unknown'))}-{idx}"
                                 }
                                 for idx, p in enumerate(products)
@@ -810,13 +861,15 @@ class ProductCatalogPlugin(BasePlugin):
         # Group services by their source page to maintain separate catalogs
         from mkdocs.structure.nav import Link, Section
         from collections import defaultdict
-        
-        # Group services by their source page (which contains the catalog tag)
+
+        # Group services by their source page (which contains the catalog tag).
+        # Key on src_path (relative) so that pages with the same relative path
+        # from different imported repos are still treated separately via abs_page.
         page_catalogs = defaultdict(list)
         for service in catalog_services:
             page_path = service['page']
             page_catalogs[page_path].append(service)
-        
+
         # Create catalog sections for each page
         for page_path, services in page_catalogs.items():
             # Extract catalog directory from the first service's modal_id
@@ -833,15 +886,21 @@ class ProductCatalogPlugin(BasePlugin):
                     if parts[-1] and '-' in parts[-1]:
                         catalog_dir = parts[-1].split('-')[0]
             
-            # Determine catalog name from the actual page title (not filename)
-            # Read the markdown file to extract the actual page title
+            # Determine catalog name from the actual page title (not filename).
+            # Prefer the absolute path stored when building catalog_services so
+            # that pages from imported repos (multirepo) are read from the right
+            # temp directory, not from the main docs_dir.
             catalog_name = "Service Catalog"  # Default fallback
             try:
-                # Ensure page_path is absolute for file reading
-                if not os.path.isabs(page_path):
-                    page_path = os.path.join(docs_dir, page_path)
-                
-                with open(page_path, 'r', encoding='utf-8') as f:
+                abs_page = services[0].get('abs_page') if services else None
+                if abs_page and os.path.isfile(abs_page):
+                    read_path = abs_page
+                elif not os.path.isabs(page_path):
+                    read_path = os.path.join(docs_dir, page_path)
+                else:
+                    read_path = page_path
+
+                with open(read_path, 'r', encoding='utf-8') as f:
                     content = f.read()
                     # Extract the first heading (page title)
                     import re
@@ -857,20 +916,11 @@ class ProductCatalogPlugin(BasePlugin):
                 catalog_name_base = page_filename.replace('_catalog.md', '').replace('.md', '').replace('_', ' ').replace('-', ' ')
                 catalog_name = f"{catalog_name_base.title()} Catalog"
             
-            # Determine overview URL from the page path
-            # Extract the directory path relative to docs/
-            # Ensure page_path is absolute for correct relative path calculation
-            if not os.path.isabs(page_path):
-                page_path = os.path.join(docs_dir, page_path)
-            
-            rel_path = os.path.relpath(page_path, docs_dir)
-            if rel_path.startswith('..'):
-                # Fallback if path is outside docs_dir
-                overview_url = "ats/infrastructure_service/service_catalog"
-            else:
-                # Convert to URL path (remove .md extension)
-                url_path = os.path.splitext(rel_path)[0]
-                overview_url = url_path.replace(os.sep, '/')
+            # Derive the overview URL from the relative src_path stored in the
+            # service dict.  page_path is already the MkDocs src_path (relative),
+            # which is valid for both local and multirepo-imported pages.
+            url_path = os.path.splitext(page_path)[0]
+            overview_url = url_path.replace(os.sep, '/')
             
             # Create Services subsection for this catalog
             services_section = Section(title="Services", children=[])
