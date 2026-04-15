@@ -1,3 +1,3 @@
 # Product Catalog
 
-<!-- product-catalog: catalog -->
+<!-- product-catalog: catalog2 -->

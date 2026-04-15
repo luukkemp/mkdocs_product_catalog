@@ -2,8 +2,8 @@ site_name: Test Site
 docs_dir: docs
 
 nav:
-  - local: index.md
-  - remote: "!import ssh://git@ssh.github.com:443/luukkemp/mkdocs_product_catalog.git?docs_dir=tests/test_site2/&branch=fix/multirepo-plugin-compat"
+  - catalog: index.md
+  - remote: "!import ssh://git@ssh.github.com:443/luukkemp/mkdocs_product_catalog.git?docs_dir=tests/test_site2/docs&config=tests/test_site2/mkdocs.yml&branch=fix/multirepo-plugin-compat"
 
 
 plugins:

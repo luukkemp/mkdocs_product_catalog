@@ -806,196 +806,141 @@ class ProductCatalogPlugin(BasePlugin):
 
     def on_nav(self, nav, config, files):
         """Add catalog services to the navigation."""
-        from mkdocs.structure.nav import Section, Page
-        
-
-        
-        # Scan for catalog directories in the docs
-        catalog_services = []
-        docs_dir = config["docs_dir"]
-        
-        # Look for <!-- product-catalog: dir --> comments in markdown files
-        import re
-        catalog_pattern = re.compile(r'<!--\s*product-catalog:\s*([^\s>]+)\s*-->')
-        
-
-        
-        for file in files:
-            if hasattr(file, 'src_path') and file.src_path.endswith('.md'):
-                try:
-                    # Use abs_src_path if available, otherwise src_path
-                    file_path = getattr(file, 'abs_src_path', file.src_path)
-                    with open(file_path, 'r', encoding='utf-8') as f:
-                        content = f.read()
-                    match = catalog_pattern.search(content)
-                    if match:
-                        catalog_dir = match.group(1)
-                        # Resolve YAML directory against the file's actual location.
-                        # This handles the multirepo-plugin case where files from
-                        # imported repos live in a temp directory that differs from
-                        # the main config["docs_dir"].
-                        effective_dir = _effective_docs_dir(
-                            getattr(file, 'abs_src_path', None),
-                            getattr(file, 'src_path', None),
-                            docs_dir,
-                        )
-                        yaml_dir = os.path.join(effective_dir, catalog_dir)
-                        if os.path.isdir(yaml_dir):
-                            products = load_products(yaml_dir)
-
-                            catalog_services.extend([
-                                {
-                                    'title': p.get('title', 'Unknown Service'),
-                                    'page': file.src_path,
-                                    'abs_page': getattr(file, 'abs_src_path', None),
-                                    'modal_id': f"{slugify(catalog_dir)}-{slugify(p.get('title', 'unknown'))}-{idx}"
-                                }
-                                for idx, p in enumerate(products)
-                            ])
-                except Exception:
-                    # Silently ignore files that can't be read
-                    pass
-        
-
-        
-        # Group services by their source page to maintain separate catalogs
-        from mkdocs.structure.nav import Link, Section
+        from mkdocs.structure.nav import Section, Page, Link
         from collections import defaultdict
+        import re
 
-        # Group services by their source page (which contains the catalog tag).
-        # Key on src_path (relative) so that pages with the same relative path
-        # from different imported repos are still treated separately via abs_page.
+        docs_dir = config["docs_dir"]
+        catalog_pattern = re.compile(r'<!--\s*product-catalog:\s*([^\s>]+)\s*-->')
+
+        # Scan all markdown files for <!-- product-catalog: dir --> tags.
+        # Each entry records the relative src_path, absolute path, catalog_dir,
+        # and a pre-built modal_id so we don't have to reverse-engineer it later.
+        catalog_services = []
+        for file in files:
+            if not (hasattr(file, 'src_path') and file.src_path.endswith('.md')):
+                continue
+            try:
+                file_path = getattr(file, 'abs_src_path', file.src_path)
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                match = catalog_pattern.search(content)
+                if match:
+                    catalog_dir = match.group(1)
+                    effective_dir = _effective_docs_dir(
+                        getattr(file, 'abs_src_path', None),
+                        getattr(file, 'src_path', None),
+                        docs_dir,
+                    )
+                    yaml_dir = os.path.join(effective_dir, catalog_dir)
+                    if os.path.isdir(yaml_dir):
+                        products = load_products(yaml_dir)
+                        abs_page = getattr(file, 'abs_src_path', None)
+                        catalog_services.extend([
+                            {
+                                'title': p.get('title', 'Unknown Service'),
+                                'page': file.src_path,
+                                'abs_page': abs_page,
+                                'catalog_dir': catalog_dir,
+                                'modal_id': f"{slugify(catalog_dir)}-{slugify(p.get('title', 'unknown'))}-{idx}",
+                            }
+                            for idx, p in enumerate(products)
+                        ])
+            except Exception:
+                pass
+
+        # Group by abs_page (unique per physical file across all repos).
+        # Falling back to src_path only when abs_path is unavailable.
+        # Using src_path alone would merge services from two repos that both
+        # have e.g. "index.md" as their entry point.
         page_catalogs = defaultdict(list)
         for service in catalog_services:
-            page_path = service['page']
-            page_catalogs[page_path].append(service)
+            key = service.get('abs_page') or service['page']
+            page_catalogs[key].append(service)
 
-        # Create catalog sections for each page
-        for page_path, services in page_catalogs.items():
-            # Extract catalog directory from the first service's modal_id
-            # This is more reliable than hardcoding page names
-            catalog_dir = "services"  # default fallback
-            if services and 'modal_id' in services[0]:
-                modal_id = services[0]['modal_id']
-                # Extract catalog prefix from modal_id (format: catalog_dir-title-index)
-                if '-' in modal_id:
-                    catalog_dir = modal_id.split('-')[0]
-                # Handle legacy format with paths
-                elif '/' in modal_id:
-                    parts = modal_id.split('/')
-                    if parts[-1] and '-' in parts[-1]:
-                        catalog_dir = parts[-1].split('-')[0]
-            
-            # Determine catalog name from the actual page title (not filename).
-            # Prefer the absolute path stored when building catalog_services so
-            # that pages from imported repos (multirepo) are read from the right
-            # temp directory, not from the main docs_dir.
-            catalog_name = "Service Catalog"  # Default fallback
+        for _key, services in page_catalogs.items():
+            page_path = services[0]['page']   # relative src_path, used for nav matching
+            abs_page = services[0].get('abs_page')
+
+            # Read the page title from its source file.
+            catalog_name = "Service Catalog"
             try:
-                abs_page = services[0].get('abs_page') if services else None
-                if abs_page and os.path.isfile(abs_page):
-                    read_path = abs_page
-                elif not os.path.isabs(page_path):
-                    read_path = os.path.join(docs_dir, page_path)
-                else:
-                    read_path = page_path
-
+                read_path = (
+                    abs_page if (abs_page and os.path.isfile(abs_page))
+                    else os.path.join(docs_dir, page_path)
+                )
                 with open(read_path, 'r', encoding='utf-8') as f:
-                    content = f.read()
-                    # Extract the first heading (page title)
-                    import re
-                    title_match = re.search(r'^#\s+(.+)$', content, re.MULTILINE)
-                    if title_match:
-                        page_title = title_match.group(1).strip()
-                        # Use the actual page title for the catalog name
-                        catalog_name = page_title
+                    page_content = f.read()
+                title_match = re.search(r'^#\s+(.+)$', page_content, re.MULTILINE)
+                if title_match:
+                    catalog_name = title_match.group(1).strip()
             except Exception as e:
-                # Fallback to filename-based name if we can't read the file
                 print(f"Warning: Could not read page title from {page_path}: {e}")
-                page_filename = os.path.basename(page_path)
-                catalog_name_base = page_filename.replace('_catalog.md', '').replace('.md', '').replace('_', ' ').replace('-', ' ')
-                catalog_name = f"{catalog_name_base.title()} Catalog"
-            
-            # Derive the overview URL from the relative src_path stored in the
-            # service dict.  page_path is already the MkDocs src_path (relative),
-            # which is valid for both local and multirepo-imported pages.
+                base = os.path.basename(page_path)
+                catalog_name = (
+                    base.replace('_catalog.md', '').replace('.md', '')
+                    .replace('_', ' ').replace('-', ' ').title() + " Catalog"
+                )
+
+            # overview_url is the URL fragment used in nav Link hrefs.
             url_path = os.path.splitext(page_path)[0]
             overview_url = url_path.replace(os.sep, '/')
-            
-            # Create Services subsection for this catalog
+
+            # Build the Services sub-section.
             services_section = Section(title="Services", children=[])
-            
             for service in services:
-                title = service['title']
-                # Generate modal_id the same way as in render_catalog_html: catalog_dir + slugified title + index
-                # But first, extract the actual modal_id from the service if it exists
-                modal_id = service.get('modal_id', '')
-                if modal_id:
-                    # Extract just the last part after the final slash/dash
-                    if '/' in modal_id:
-                        modal_id = modal_id.split('/')[-1]
-                    elif 'catalog/' in modal_id:
-                        modal_id = modal_id.split('catalog/')[-1]
-                else:
-                    modal_id = f"{catalog_dir}-{slugify(title)}-{services.index(service)}"
-                
-                # Create a Link object that links to the page with modal hash
-                service_link = Link(
-                    title=title,
-                    url=f"{overview_url}#modal-" + modal_id
-                )
-                services_section.children.append(service_link)
-            
-            # Create Overview subsection
+                services_section.children.append(Link(
+                    title=service['title'],
+                    url=f"{overview_url}#modal-{service['modal_id']}",
+                ))
+
             overview_link = Link(title="Overview", url=overview_url)
-            
-            # Create the catalog section
-            catalog_section = Section(title=catalog_name, children=[overview_link, services_section])
-            
-            # Find existing navigation item for this catalog
-            # Look for either:
-            # 1. A section that contains our overview page as a child
-            # 2. A simple link that points directly to our overview page
+            catalog_section = Section(
+                title=catalog_name,
+                children=[overview_link, services_section],
+            )
+
+            # Locate the existing nav item that corresponds to this page.
+            # We match Page objects by file.src_path (the MkDocs source path)
+            # rather than by page.url (the output URL), because output URLs
+            # differ by use_directory_urls setting and are not reliable here.
             existing_item = None
             existing_item_index = -1
-            
+
             for idx, item in enumerate(nav.items):
-                # Case 1: Section containing our overview page
-                if hasattr(item, 'children') and item.children:
+                if isinstance(item, Page):
+                    # Direct top-level page entry (e.g. "- catalog: index.md")
+                    if hasattr(item, 'file') and item.file and item.file.src_path == page_path:
+                        existing_item = item
+                        existing_item_index = idx
+                        break
+                elif hasattr(item, 'children') and item.children:
+                    # Section — check whether it contains this page as a child.
                     for child in item.children:
-                        if (hasattr(child, 'url') and 
-                            child.url and 
-                            overview_url in child.url):
+                        if (isinstance(child, Page) and
+                                hasattr(child, 'file') and child.file and
+                                child.file.src_path == page_path):
                             existing_item = item
                             existing_item_index = idx
                             break
                     if existing_item:
                         break
-                
-                # Case 2: Simple link pointing to our overview page
-                elif (hasattr(item, 'url') and 
-                      item.url and 
-                      overview_url in item.url):
-                    existing_item = item
-                    existing_item_index = idx
-                    break
-            
-            if existing_item:
-                if hasattr(existing_item, 'children'):
-                    # Existing section - update its children
+
+            if existing_item is not None:
+                if isinstance(existing_item, Page):
+                    # Replace the bare page entry with the full catalog section,
+                    # preserving the title the user gave it in mkdocs.yml.
+                    catalog_section.title = existing_item.title or catalog_name
+                    nav.items[existing_item_index] = catalog_section
+                    print(f"Replaced page entry with catalog section: {catalog_section.title}")
+                else:
+                    # The page lives inside an existing section — update its children.
                     existing_item.children = catalog_section.children
                     print(f"Updated existing catalog section: {existing_item.title}")
-                else:
-                    # Existing simple link - replace with our section
-                    # Preserve the user's custom title
-                    catalog_section.title = existing_item.title
-                    nav.items[existing_item_index] = catalog_section
-                    print(f"Replaced simple link with catalog section: {catalog_section.title}")
             else:
-                # Add new section
                 nav.items.append(catalog_section)
                 print(f"Added new catalog section: {catalog_name}")
-        
+
         return nav
 
     def on_post_build(self, config):
