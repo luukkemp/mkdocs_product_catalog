@@ -26,9 +26,21 @@ Then place this tag anywhere in a markdown file to embed a catalog:
 
 `dirname` is the path to a directory of YAML files, relative to your `docs/` folder.
 
-**Important**: Each catalog tag should be on a separate page. While you can technically place multiple catalog tags on the same page, this is not recommended because:
+## Navbar integration
 
-1. **Navigation Confusion**: Multiple catalogs on one page create ambiguous navigation structure
+The plugin automatically adds each product to the MkDocs navigation as a link. Clicking a nav entry opens the product's modal directly via a `#modal-{id}` hash. This is why placing each catalog on its own dedicated page is recommended — the navbar integration works best when each catalog has a single source page.
+
+## Hash-based deep linking
+
+Products can be linked to directly via `#modal-{id}` in the URL. For example:
+- `https://yoursite.com/catalog-page#modal-product-name-0`
+- This allows direct linking to specific products in documentation
+
+## One catalog per page recommendation
+
+**Important**: Each catalog tag should be on a separate page because:
+
+1. **Navigation Integration**: The navbar feature requires one catalog per page to correctly associate products with their source page
 2. **User Experience**: Users expect each catalog to have its own dedicated page
 3. **Maintenance**: Separate pages make it easier to manage and update catalogs independently
 
@@ -99,6 +111,15 @@ documentation:
 ```
 
 Each array item creates a separate link in the modal with optional title and description.
+
+**Backward Compatibility**: The old single-string format is still supported:
+
+```yaml
+documentation: https://docs.example.com/myproduct
+repository: https://github.com/example/myproduct
+```
+
+Existing YAML files using the single-string format will continue to work without modification.
 
 ### Metadata
 
