@@ -757,8 +757,39 @@ class ProductCatalogPlugin(BasePlugin):
         """
         def replace_tag(match):
             rel_dir = match.group(1).strip()
-            yaml_dir = os.path.join(self._docs_dir, rel_dir)
+            
+            # Support both absolute paths (relative to docs_dir) and relative paths (relative to current file)
+            # Check if path starts with ./ or ../ (relative to current file)
+            if rel_dir.startswith('./') or rel_dir.startswith('../'):
+                # Relative to current markdown file
+                current_file_dir = os.path.dirname(page.file.abs_src_path) if hasattr(page.file, 'abs_src_path') else os.path.dirname(page.file.src_path)
+                yaml_dir = os.path.normpath(os.path.join(current_file_dir, rel_dir))
+                
+                # Debug logging
+                print(f"🔍 Product Catalog Debug (relative path):")
+                print(f"   - Content tag found: <!-- product-catalog: {rel_dir} -->")
+                print(f"   - Current file directory: {current_file_dir}")
+                print(f"   - Resolved YAML directory: {yaml_dir}")
+            else:
+                # Absolute path relative to docs_dir (original behavior)
+                yaml_dir = os.path.join(self._docs_dir, rel_dir)
+                
+                # Debug logging
+                print(f"🔍 Product Catalog Debug (absolute path):")
+                print(f"   - Content tag found: <!-- product-catalog: {rel_dir} -->")
+                print(f"   - Docs directory: {self._docs_dir}")
+                print(f"   - Resolved YAML directory: {yaml_dir}")
+            
+            print(f"   - Directory exists: {os.path.exists(yaml_dir)}")
+            
+            if os.path.exists(yaml_dir):
+                print(f"   - Directory contents: {os.listdir(yaml_dir) if os.path.isdir(yaml_dir) else 'Not a directory'}")
+            
             products = load_products(yaml_dir)
+            print(f"   - Products loaded: {len(products)}")
+            for p in products:
+                print(f"     • {p.get('title', 'Untitled')}")
+            
             return render_catalog_html(products, id_prefix=slugify(rel_dir) + "-")
 
         return _CONTENT_TAG_RE.sub(replace_tag, html)
@@ -789,19 +820,43 @@ class ProductCatalogPlugin(BasePlugin):
                     match = catalog_pattern.search(content)
                     if match:
                         catalog_dir = match.group(1)
-                        yaml_dir = os.path.join(docs_dir, catalog_dir)
+                        
+                        # Support both absolute and relative paths in navigation generation
+                        if catalog_dir.startswith('./') or catalog_dir.startswith('../'):
+                            # Relative to current markdown file
+                            current_file_dir = os.path.dirname(file_path)
+                            yaml_dir = os.path.normpath(os.path.join(current_file_dir, catalog_dir))
+                        else:
+                            # Absolute path relative to docs_dir
+                            yaml_dir = os.path.join(docs_dir, catalog_dir)
+                        
+                        # Debug logging for navigation generation
+                        print(f"🔧 Nav Generation Debug:")
+                        print(f"   - File: {file_path}")
+                        print(f"   - Catalog dir from tag: {catalog_dir}")
+                        print(f"   - Resolved YAML dir: {yaml_dir}")
+                        print(f"   - YAML dir exists: {os.path.exists(yaml_dir)}")
+                        
                         if os.path.isdir(yaml_dir):
                             products = load_products(yaml_dir)
+                            print(f"   - Products found: {len(products)}")
 
+                            # Clean up catalog_dir for modal_id generation (remove relative path indicators)
+                            clean_catalog_dir = catalog_dir.replace('./', '').replace('../', '').lstrip('/')
+                            
                             catalog_services.extend([
                                 {
                                     'title': p.get('title', 'Unknown Service'),
                                     'page': file.src_path,
-                                    'modal_id': f"{slugify(catalog_dir)}-{slugify(p.get('title', 'unknown'))}-{idx}"
+                                    'modal_id': f"{slugify(clean_catalog_dir)}-{slugify(p.get('title', 'unknown'))}-{idx}"
                                 }
                                 for idx, p in enumerate(products)
                             ])
-                except Exception:
+                        else:
+                            print(f"   ⚠️  YAML directory not found!")
+                except Exception as e:
+                    # Log file reading errors
+                    print(f"   ❌ Error reading file {file_path}: {e}")
                     # Silently ignore files that can't be read
                     pass
         
@@ -941,10 +996,15 @@ class ProductCatalogPlugin(BasePlugin):
                     catalog_section.title = existing_item.title
                     nav.items[existing_item_index] = catalog_section
                     print(f"Replaced simple link with catalog section: {catalog_section.title}")
+                    print(f"  - Replaced item at index {existing_item_index}")
+                    print(f"  - Original item: {existing_item}")
+                    print(f"  - New item: {catalog_section}")
             else:
                 # Add new section
                 nav.items.append(catalog_section)
                 print(f"Added new catalog section: {catalog_name}")
+                print(f"  - No existing section found for {overview_url}")
+                print(f"  - Available nav items: {[getattr(item, 'title', 'No title') for item in nav.items]}")
         
         return nav
 

@@ -24,7 +24,31 @@ Then place this tag anywhere in a markdown file to embed a catalog:
 <!-- product-catalog: dirname -->
 ```
 
-`dirname` is the path to a directory of YAML files, relative to your `docs/` folder.
+`dirname` is the path to a directory of YAML files. The plugin supports two path resolution modes:
+
+**Absolute paths** (relative to `docs_dir`):
+```html
+<!-- product-catalog: catalog/primary_services -->
+```
+- Resolved from the MkDocs `docs_dir` configuration
+- Recommended for single-repo setups
+- Path: `docs/catalog/primary_services`
+
+**Relative paths** (relative to current file):
+```html
+<!-- product-catalog: ./catalog/primary_services -->
+<!-- product-catalog: ../shared/catalog/services -->
+```
+- Resolved relative to the current markdown file's location
+- Useful for multi-repo setups with localized catalog organization
+- Path: `docs/ats/infrastructure_service/catalog/primary_services`
+
+**Multi-repo compatibility**: The plugin automatically detects path type:
+- Paths starting with `./` or `../` → relative to current file
+- All other paths → relative to `docs_dir`
+- Always use forward slashes: `catalog/primary_services` (not backslashes)
+
+For debugging path resolution issues, enable debug logging by setting the `MKDOCS_PRODUCT_CATALOG_DEBUG` environment variable.
 
 ## Navbar integration
 

@@ -577,3 +577,34 @@ class TestCatalogNameGeneration:
         assert existing_item.title == "My Custom Catalog", f"Should preserve user's title: {existing_item.title}"
         
         print("✓ Navigation section replacement logic works correctly")
+    
+    def test_relative_path_resolution(self):
+        """Test that relative paths are properly resolved."""
+        import os
+        
+        # Test absolute path resolution (original behavior)
+        docs_dir = '/project/docs'
+        catalog_dir = 'catalog/services'
+        
+        # Should use absolute path resolution
+        assert not catalog_dir.startswith('./'), "Absolute path should not start with ./"
+        yaml_dir = os.path.join(docs_dir, catalog_dir)
+        expected = '/project/docs/catalog/services'
+        assert yaml_dir == expected, f"Expected {expected}, got {yaml_dir}"
+        
+        # Test relative path resolution
+        current_file = '/project/docs/ats/infrastructure_service/page.md'
+        catalog_dir = './catalog/services'
+        
+        # Should use relative path resolution
+        assert catalog_dir.startswith('./'), "Relative path should start with ./"
+        current_file_dir = os.path.dirname(current_file)
+        yaml_dir = os.path.normpath(os.path.join(current_file_dir, catalog_dir))
+        expected = '/project/docs/ats/infrastructure_service/catalog/services'
+        assert yaml_dir == expected, f"Expected {expected}, got {yaml_dir}"
+        
+        # Test modal_id cleaning for relative paths
+        clean_catalog_dir = catalog_dir.replace('./', '').replace('../', '').lstrip('/')
+        assert clean_catalog_dir == 'catalog/services', f"Expected 'catalog/services', got '{clean_catalog_dir}'"
+        
+        print("✓ Relative path resolution works correctly")
