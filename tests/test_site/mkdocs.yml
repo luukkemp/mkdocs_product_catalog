@@ -1,6 +1,12 @@
 site_name: Test Site
 docs_dir: docs
 
+nav:
+  - local: index.md
+  - remote: "!import ssh://git@ssh.github.com:443/luukkemp/mkdocs_product_catalog.git?docs_dir=tests/test_site/&branch=main"
+
+
 plugins:
+  - multirepo
   - search
   - product-catalog
