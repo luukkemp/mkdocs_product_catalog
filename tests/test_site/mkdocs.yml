@@ -4,3 +4,7 @@ docs_dir: docs
 plugins:
   - search
   - product-catalog
+
+nav:
+  - Home: index.md
+  - Services: services.md

@@ -7,7 +7,7 @@ name = "mkdocs-product-catalog"
 version = "2.1.0"
 description = "MkDocs plugin that generates a product catalog page from YAML files"
 readme = "README.md"
-license = "MIT"
+license = {text = "MIT"}
 requires-python = ">=3.8"
 keywords = ["mkdocs", "mkdocs-plugin", "catalog", "documentation"]
 classifiers = [
@@ -26,8 +26,17 @@ dependencies = [
 product-catalog = "mkdocs_product_catalog.plugin:ProductCatalogPlugin"
 
 [project.optional-dependencies]
-dev = ["pytest>=7"]
+dev = [
+    "pytest>=7",
+    "mkdocs-multirepo-plugin>=0.6",
+]
 
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["mkdocs_product_catalog*"]
+
+[tool.setuptools.package-data]
+mkdocs_product_catalog = ["assets/*.css", "assets/*.js"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests/unit_tests", "tests/integration_tests"]
