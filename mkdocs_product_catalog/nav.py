@@ -139,23 +139,16 @@ def build_catalog_nav(nav, files, config: dict, nav_enabled: bool = True):
             children=[overview_link, services_section],
         )
 
-        existing_idx, existing_item = _find_nav_item_for_url(nav.items, overview_url)
+        container, existing_idx, existing_item = _find_nav_item_for_url(nav.items, overview_url)
 
         if existing_item is not None:
-            if hasattr(existing_item, "children"):
-                # Existing section — preserve its user-configured title, update children
-                existing_item.children = catalog_section.children
-                log.debug(
-                    f"product-catalog: updated existing nav section '{existing_item.title}'"
-                )
-            else:
-                # Existing simple link — replace with section, preserve title
-                catalog_section.title = existing_item.title or catalog_name
-                nav.items[existing_idx] = catalog_section
-                log.debug(
-                    f"product-catalog: replaced nav link with catalog section "
-                    f"'{catalog_section.title}'"
-                )
+            # Preserve user-configured title from nav: config if present
+            catalog_section.title = existing_item.title or catalog_name
+            container[existing_idx] = catalog_section
+            log.debug(
+                f"product-catalog: replaced nav item '{existing_item.title}' "
+                f"with catalog section '{catalog_section.title}'"
+            )
         else:
             nav.items.append(catalog_section)
             log.debug(f"product-catalog: added nav section '{catalog_name}'")
@@ -177,25 +170,20 @@ def _collect_pages(nav_items) -> dict:
 
 
 def _find_nav_item_for_url(nav_items, url: str):
-    """Find the first top-level nav item whose url matches overview_url.
+    """Recursively find a nav item matching url at any depth.
 
-    Returns (index, item) or (None, None).
-    Only searches top-level items — we want to replace or update at the root,
-    not deep inside nested sections.
+    Returns (container, index, item) where container is the list that holds
+    the found item, so the caller can replace it in-place at the right level.
+    Returns (None, None, None) when not found.
     """
     for idx, item in enumerate(nav_items or []):
         if hasattr(item, "url") and item.url and item.url.rstrip("/") == url:
-            return idx, item
-        # Also check if it's a section that directly wraps our overview page
+            return nav_items, idx, item
         if hasattr(item, "children") and item.children:
-            for child in item.children:
-                if (
-                    hasattr(child, "url")
-                    and child.url
-                    and child.url.rstrip("/") == url
-                ):
-                    return idx, item
-    return None, None
+            result = _find_nav_item_for_url(item.children, url)
+            if result[0] is not None:
+                return result
+    return None, None, None
 
 
 def _resolve_yaml_dir(catalog_dir: str, file_path: str, docs_dir: str) -> str:

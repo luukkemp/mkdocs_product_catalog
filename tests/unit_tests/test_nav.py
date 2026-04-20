@@ -73,28 +73,43 @@ class TestCollectPages:
 class TestFindNavItemForUrl:
     def test_finds_direct_link(self):
         link = Link(title="Overview", url="team/services/")
-        idx, item = _find_nav_item_for_url([link], "team/services")
+        container, idx, item = _find_nav_item_for_url([link], "team/services")
         assert idx == 0
         assert item is link
 
-    def test_finds_section_containing_page(self, tmp_path):
+    def test_finds_page_nested_in_section(self, tmp_path):
         f = tmp_path / "catalog.md"
         f.write_text("# Catalog\n")
         page = _make_page("catalog.md", "team/catalog/", "Catalog", str(f))
         section = Section(title="Team", children=[page])
-        idx, item = _find_nav_item_for_url([section], "team/catalog")
+        container, idx, item = _find_nav_item_for_url([section], "team/catalog")
+        # Returns the page itself, not the parent section
+        assert item is page
+        assert container is section.children
         assert idx == 0
-        assert item is section
+
+    def test_finds_page_deeply_nested(self, tmp_path):
+        """Three levels deep — the multirepo nested-section scenario."""
+        f = tmp_path / "catalog.md"
+        f.write_text("# Catalog\n")
+        page = _make_page("catalog.md", "global/team-alpha/catalog/", "Services", str(f))
+        team_alpha = Section(title="Team Alpha", children=[page])
+        global_cat = Section(title="Global category", children=[team_alpha])
+        container, idx, item = _find_nav_item_for_url([global_cat], "global/team-alpha/catalog")
+        assert item is page
+        assert container is team_alpha.children
+        assert idx == 0
 
     def test_returns_none_when_not_found(self):
         link = Link(title="Other", url="other/page/")
-        idx, item = _find_nav_item_for_url([link], "team/services")
+        container, idx, item = _find_nav_item_for_url([link], "team/services")
+        assert container is None
         assert idx is None
         assert item is None
 
     def test_url_trailing_slash_insensitive(self):
         link = Link(title="X", url="services/")
-        idx, item = _find_nav_item_for_url([link], "services")
+        container, idx, item = _find_nav_item_for_url([link], "services")
         assert idx == 0
 
 
@@ -300,14 +315,66 @@ class TestBuildCatalogNav:
         md_file = self._make_file("catalog.md",
                                   "# Cat\n<!-- product-catalog: svc -->\n", docs_dir)
         page = _make_page("catalog.md", "catalog/", "Cat", md_file.abs_src_path)
-        # Existing section already has page as child
-        existing_section = Section(title="User Title", children=[page])
+        # Parent section wraps the catalog page
+        existing_section = Section(title="Parent Section", children=[page])
         nav = _make_nav([existing_section])
         result = build_catalog_nav(nav, [md_file], {"docs_dir": docs_dir})
 
-        # Should still be one item, title preserved
+        # Parent section still at root, its child replaced with catalog section
         assert len(result.items) == 1
-        assert result.items[0].title == "User Title"
+        assert result.items[0].title == "Parent Section"
+        inner = result.items[0].children[0]
+        assert hasattr(inner, "children"), "page should be replaced with a Section"
+        child_titles = [c.title for c in inner.children]
+        assert "Overview" in child_titles
+        assert "Services" in child_titles
+
+    def test_catalog_injected_into_nested_section(self, tmp_path):
+        """Regression: catalog page nested 3 levels deep must not duplicate at root."""
+        docs_dir = str(tmp_path / "docs")
+        os.makedirs(docs_dir)
+        import yaml
+        svc_dir = tmp_path / "docs" / "services"
+        svc_dir.mkdir(parents=True)
+        (svc_dir / "alpha.yaml").write_text(yaml.dump({"title": "Alpha"}))
+
+        md_file = self._make_file(
+            "team/catalog.md",
+            "# Services\n<!-- product-catalog: ./services -->\n",
+            docs_dir,
+        )
+        abs_svc_dir = str(tmp_path / "docs" / "team" / "services")
+        # Override: place YAML next to the markdown file
+        os.makedirs(abs_svc_dir, exist_ok=True)
+        (tmp_path / "docs" / "team" / "services" / "alpha.yaml").write_text(
+            yaml.dump({"title": "Alpha"})
+        )
+
+        page = _make_page(
+            "team/catalog.md", "global/team/catalog/", "Services",
+            md_file.abs_src_path
+        )
+        team_section = Section(title="Team Alpha", children=[page])
+        global_section = Section(title="Global category", children=[team_section])
+        nav = _make_nav([global_section])
+
+        result = build_catalog_nav(nav, [md_file], {"docs_dir": docs_dir})
+
+        # Must not duplicate at root
+        assert len(result.items) == 1, (
+            f"Expected 1 root item, got {len(result.items)}: "
+            f"{[i.title for i in result.items]}"
+        )
+        assert result.items[0].title == "Global category"
+
+        # Catalog section must be inside Team Alpha
+        team = result.items[0].children[0]
+        assert team.title == "Team Alpha"
+        inner = team.children[0]
+        assert hasattr(inner, "children"), "Services page should become a Section"
+        child_titles = [c.title for c in inner.children]
+        assert "Overview" in child_titles
+        assert "Services" in child_titles
 
     def test_page_not_in_nav_is_skipped(self, tmp_path):
         docs_dir = str(tmp_path / "docs")
