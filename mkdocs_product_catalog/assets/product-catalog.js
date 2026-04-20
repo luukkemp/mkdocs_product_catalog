@@ -4,6 +4,31 @@ function openCatalogModal(id) {
     el.classList.add('active');
     document.body.style.overflow = 'hidden';
     history.pushState({ catalogModal: id }, '', '#modal-' + id);
+    _expandNavForModal(id);
+  }
+}
+
+// Expand all Material nav sections that contain a link to this modal so the
+// services list stays visible in the sidebar while the modal is open.
+function _expandNavForModal(id) {
+  var link = document.querySelector('.md-nav a[href*="#modal-' + id + '"]');
+  if (!link) return;
+  link.classList.add('md-nav__link--active');
+  // Walk up the DOM: for every md-nav element, check the toggle input that
+  // controls it (Material uses a preceding <input type="checkbox"> sibling).
+  var node = link.parentElement;
+  while (node && node !== document.body) {
+    if (node.tagName === 'NAV' && node.classList.contains('md-nav')) {
+      var prev = node.previousElementSibling;
+      while (prev) {
+        if (prev.tagName === 'INPUT' && prev.type === 'checkbox') {
+          prev.checked = true;
+          break;
+        }
+        prev = prev.previousElementSibling;
+      }
+    }
+    node = node.parentElement;
   }
 }
 
@@ -67,6 +92,7 @@ window.addEventListener('DOMContentLoaded', function() {
       setTimeout(function() {
         el.classList.add('active');
         document.body.style.overflow = 'hidden';
+        _expandNavForModal(modalId);
       }, 100);
     }
   }
