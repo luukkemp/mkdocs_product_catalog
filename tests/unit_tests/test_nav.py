@@ -376,6 +376,55 @@ class TestBuildCatalogNav:
         # No extra wrapper — they are direct children of Team Alpha
         assert len(team.children) == 2
 
+    def test_catalog_page_with_siblings_wrapped_in_section(self, tmp_path):
+        """Regression: when catalog page has siblings in parent, wrap in section not splice.
+
+        Fixture scenario: Team Alpha has [Main Section, catalog-root page].
+        Splicing Overview+Services directly into Team Alpha leaves them as bare
+        siblings of Main Section.  They must be wrapped in a named section instead.
+        """
+        docs_dir = str(tmp_path / "docs")
+        os.makedirs(docs_dir)
+        self._setup_catalog(tmp_path / "docs", "svc", [{"title": "Alpha"}])
+        catalog_file = self._make_file(
+            "catalog-root.md",
+            "# Root Catalog\n<!-- product-catalog: svc -->\n",
+            docs_dir,
+        )
+        catalog_page = _make_page(
+            "catalog-root.md", "team/catalog-root/", "Root Catalog",
+            catalog_file.abs_src_path,
+        )
+        # A sibling page already in the parent section
+        other_page = _make_page("other.md", "team/other/", "Other", "/dev/null")
+        parent_section = Section(title="Team Alpha", children=[other_page, catalog_page])
+        nav = _make_nav([parent_section])
+
+        result = build_catalog_nav(nav, [catalog_file], {"docs_dir": docs_dir})
+
+        # Root must still be Team Alpha — no duplication
+        assert len(result.items) == 1
+        team = result.items[0]
+        assert team.title == "Team Alpha"
+
+        # Catalog page must be replaced by a named section, not spliced bare
+        child_titles = [c.title for c in team.children]
+        assert "Overview" not in child_titles, (
+            "Overview should be inside a catalog section, not a bare Team Alpha child"
+        )
+        assert "Services" not in child_titles, (
+            "Services should be inside a catalog section, not a bare Team Alpha child"
+        )
+
+        # The named catalog section should be there instead
+        catalog_sections = [c for c in team.children if hasattr(c, "children")]
+        assert len(catalog_sections) == 1
+        cat_sec = catalog_sections[0]
+        assert cat_sec.title == "Root Catalog"
+        cat_child_titles = [c.title for c in cat_sec.children]
+        assert "Overview" in cat_child_titles
+        assert "Services" in cat_child_titles
+
     def test_page_not_in_nav_is_skipped(self, tmp_path):
         docs_dir = str(tmp_path / "docs")
         os.makedirs(docs_dir)

@@ -143,16 +143,19 @@ def build_catalog_nav(nav, files, config: dict, nav_enabled: bool = True):
 
         if existing_item is not None:
             catalog_section.title = existing_item.title or catalog_name
-            if container is nav.items:
-                # Root-level page: keep wrapper section so the title isn't lost
+            if container is nav.items or len(container) > 1:
+                # Keep the catalog wrapped in a named section when the page is at
+                # root level (title would be lost otherwise) or when it has
+                # siblings (bare Overview/Services would pollute the parent).
                 container[existing_idx] = catalog_section
                 log.debug(
-                    f"product-catalog: replaced root nav item '{existing_item.title}' "
+                    f"product-catalog: replaced nav item '{existing_item.title}' "
                     f"with catalog section '{catalog_section.title}'"
                 )
             else:
-                # Page is inside a parent section: splice Overview + Services
-                # directly into the parent — no redundant wrapper layer
+                # Page is the sole child of its parent section: splice Overview +
+                # Services directly so the parent acts as the catalog section
+                # without an extra wrapper layer.
                 container[existing_idx : existing_idx + 1] = catalog_section.children
                 log.debug(
                     f"product-catalog: injected catalog children into parent section "
