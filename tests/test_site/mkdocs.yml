@@ -1,6 +1,16 @@
 site_name: Test Site
 docs_dir: docs
 
+theme:
+  name: material
+  palette:
+    primary: indigo
+    accent: indigo
+
 plugins:
   - search
   - product-catalog
+
+nav:
+  - Home: index.md
+  - Services: services.md

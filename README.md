@@ -20,42 +20,77 @@ plugins:
 
 Then place this tag anywhere in a markdown file to embed a catalog:
 
-```
+```html
 <!-- product-catalog: dirname -->
 ```
 
-`dirname` is the path to a directory of YAML files, relative to your `docs/` folder.
+`dirname` is the path to a directory of YAML files. Multiple tags can appear on the same page.
 
-## Navbar integration
+### Path resolution
 
-The plugin automatically adds each product to the MkDocs navigation as a link. Clicking a nav entry opens the product's modal directly via a `#modal-{id}` hash. This is why placing each catalog on its own dedicated page is recommended — the navbar integration works best when each catalog has a single source page.
+**Absolute paths** (relative to `docs_dir`):
+```html
+<!-- product-catalog: catalog/platform_services -->
+```
 
-## Hash-based deep linking
+**Relative paths** (relative to the current file):
+```html
+<!-- product-catalog: ./services -->
+<!-- product-catalog: ../shared/catalog -->
+```
 
-Products can be linked to directly via `#modal-{id}` in the URL. For example:
-- `https://yoursite.com/catalog-page#modal-product-name-0`
-- This allows direct linking to specific products in documentation
+Paths starting with `./` or `../` are resolved relative to the current markdown file. All other paths are resolved from `docs_dir`. Relative paths are required when using [mkdocs-multirepo-plugin](#multirepo-compatibility).
 
-## One catalog per page recommendation
+## Navigation integration
 
-**Important**: Each catalog tag should be on a separate page because:
+The plugin automatically injects each catalog into the MkDocs navigation. Every product gets a nav link that opens its modal directly via a `#modal-{id}` hash anchor.
 
-1. **Navigation Integration**: The navbar feature requires one catalog per page to correctly associate products with their source page
-2. **User Experience**: Users expect each catalog to have its own dedicated page
-3. **Maintenance**: Separate pages make it easier to manage and update catalogs independently
+### Opt out per tag
 
-**Recommended approach**: Create separate pages for each catalog:
+Add `no-nav` to suppress nav injection for a specific catalog:
 
-```markdown
-# Platform Tools (platform_tools.md)
+```html
+<!-- product-catalog: ./internal no-nav -->
+```
 
-<!-- product-catalog: catalog/platform -->
+### Disable globally
+
+```yaml
+plugins:
+  - product-catalog:
+      nav_enabled: false
+```
+
+## Multirepo compatibility
+
+The plugin works with [mkdocs-multirepo-plugin](https://github.com/jdoiro3/mkdocs-multirepo-plugin). Use relative paths in catalog tags so they resolve correctly inside each imported repo's temporary clone directory:
+
+```yaml
+# Root mkdocs.yml
+plugins:
+  - search
+  - product-catalog
+  - multirepo:
+      cleanup: true
+
+nav:
+  - Home: index.md
+  - Team Alpha: '!import https://github.com/your-org/team-alpha-docs?branch=main'
 ```
 
 ```markdown
-# Data Tools (data_tools.md)
+<!-- In team-alpha-docs/docs/catalog.md -->
+<!-- product-catalog: ./services -->
+```
 
-<!-- product-catalog: catalog/data -->
+Nav links for imported repos are computed from MkDocs `Page.url`, so they remain correct regardless of where the plugin clones the source repository.
+
+## Hash-based deep linking
+
+Products can be linked to directly via `#modal-{id}` in the URL:
+
+```
+https://yoursite.com/catalog-page#modal-services-my-product-0
 ```
 
 ## Product YAML format
@@ -67,20 +102,17 @@ title: My Product                                  # required
 description: A short description of the product.  # optional
 icon: images/my_icon.png                           # optional
 url: https://myproduct.example.com                 # optional
-documentation:                                    # optional - array format
-  - url: https://docs.example.com/myproduct       # URL required
-    title: Official Documentation                   # optional title override
-    description: Comprehensive guide to the product # optional description
-  - url: https://guide.example.com/user-guide       # Multiple links supported
-    title: User Guide                                # Custom display title
-    description: Step-by-step tutorials               # Additional context
-repository:                                      # optional - array format
-  - url: https://github.com/example/myproduct      # URL required
-    title: Main Repository                          # optional title override
-    description: Official source code repository     # optional description
-  - url: https://github.com/example/plugins         # Multiple repos supported
-    title: Plugins Repository                       # Custom display title
-    description: Official and community plugins      # Additional context
+documentation:                                     # optional
+  - url: https://docs.example.com/myproduct
+    title: Official Documentation
+    description: Comprehensive guide to the product
+  - url: https://guide.example.com/user-guide
+    title: User Guide
+repository:                                        # optional
+  - url: https://github.com/example/myproduct
+    title: Main Repository
+  - url: https://github.com/example/plugins
+    title: Plugins Repository
 owners:                                            # optional
   - Alice
   - Bob
@@ -98,28 +130,12 @@ The `icon` value is used as the `src` of an `<img>` tag — use a path relative 
 
 ### Documentation and Repository
 
-Both `documentation` and `repository` fields support array format for multiple links:
-
-```yaml
-documentation:
-  - url: https://docs.example.com          # Required: URL
-    title: Official Documentation           # Optional: Custom display title
-    description: Comprehensive API reference # Optional: Additional context
-  - url: https://guides.example.com
-    title: Getting Started Guide
-    description: Beginner tutorials
-```
-
-Each array item creates a separate link in the modal with optional title and description.
-
-**Backward Compatibility**: The old single-string format is still supported:
+Both fields support an array of links, each with an optional `title` and `description`. The legacy single-string format is also accepted:
 
 ```yaml
 documentation: https://docs.example.com/myproduct
 repository: https://github.com/example/myproduct
 ```
-
-Existing YAML files using the single-string format will continue to work without modification.
 
 ### Metadata
 
@@ -127,7 +143,11 @@ Any metadata value that contains a URL (`http://`, `https://`) is automatically 
 
 ## Search
 
-Product titles, descriptions, and owner names are included in a hidden element on the page so MkDocs search can index them. Searching for a product title will surface the page it appears on.
+Product titles, descriptions, and owner names are included in a hidden element on the page so MkDocs search can index them.
+
+## Logging
+
+The plugin logs under the `mkdocs.plugins.product-catalog` logger. Use `mkdocs build --verbose` to see debug output.
 
 ## How it works
 
