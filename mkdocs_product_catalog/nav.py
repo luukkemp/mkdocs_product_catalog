@@ -142,13 +142,22 @@ def build_catalog_nav(nav, files, config: dict, nav_enabled: bool = True):
         container, existing_idx, existing_item = _find_nav_item_for_url(nav.items, overview_url)
 
         if existing_item is not None:
-            # Preserve user-configured title from nav: config if present
             catalog_section.title = existing_item.title or catalog_name
-            container[existing_idx] = catalog_section
-            log.debug(
-                f"product-catalog: replaced nav item '{existing_item.title}' "
-                f"with catalog section '{catalog_section.title}'"
-            )
+            if container is nav.items:
+                # Root-level page: keep wrapper section so the title isn't lost
+                container[existing_idx] = catalog_section
+                log.debug(
+                    f"product-catalog: replaced root nav item '{existing_item.title}' "
+                    f"with catalog section '{catalog_section.title}'"
+                )
+            else:
+                # Page is inside a parent section: splice Overview + Services
+                # directly into the parent — no redundant wrapper layer
+                container[existing_idx : existing_idx + 1] = catalog_section.children
+                log.debug(
+                    f"product-catalog: injected catalog children into parent section "
+                    f"(replacing '{existing_item.title}')"
+                )
         else:
             nav.items.append(catalog_section)
             log.debug(f"product-catalog: added nav section '{catalog_name}'")

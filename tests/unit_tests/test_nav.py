@@ -308,26 +308,26 @@ class TestBuildCatalogNav:
         assert len(sections) == 1
         assert sections[0].title == "My Custom Title"
 
-    def test_existing_section_children_updated(self, tmp_path):
+    def test_nested_page_spliced_into_parent_section(self, tmp_path):
+        """Page inside a parent section: Overview + Services spliced directly, no wrapper."""
         docs_dir = str(tmp_path / "docs")
         os.makedirs(docs_dir)
         self._setup_catalog(tmp_path / "docs", "svc", [{"title": "NewService"}])
         md_file = self._make_file("catalog.md",
                                   "# Cat\n<!-- product-catalog: svc -->\n", docs_dir)
         page = _make_page("catalog.md", "catalog/", "Cat", md_file.abs_src_path)
-        # Parent section wraps the catalog page
-        existing_section = Section(title="Parent Section", children=[page])
-        nav = _make_nav([existing_section])
+        parent_section = Section(title="Parent Section", children=[page])
+        nav = _make_nav([parent_section])
         result = build_catalog_nav(nav, [md_file], {"docs_dir": docs_dir})
 
-        # Parent section still at root, its child replaced with catalog section
+        # Parent section preserved at root, page replaced by [Overview, Services]
         assert len(result.items) == 1
         assert result.items[0].title == "Parent Section"
-        inner = result.items[0].children[0]
-        assert hasattr(inner, "children"), "page should be replaced with a Section"
-        child_titles = [c.title for c in inner.children]
+        child_titles = [c.title for c in result.items[0].children]
         assert "Overview" in child_titles
         assert "Services" in child_titles
+        # No extra wrapper section — Overview and Services are direct children
+        assert len(result.items[0].children) == 2
 
     def test_catalog_injected_into_nested_section(self, tmp_path):
         """Regression: catalog page nested 3 levels deep must not duplicate at root."""
@@ -367,14 +367,14 @@ class TestBuildCatalogNav:
         )
         assert result.items[0].title == "Global category"
 
-        # Catalog section must be inside Team Alpha
+        # Overview and Services spliced directly into Team Alpha — no extra wrapper
         team = result.items[0].children[0]
         assert team.title == "Team Alpha"
-        inner = team.children[0]
-        assert hasattr(inner, "children"), "Services page should become a Section"
-        child_titles = [c.title for c in inner.children]
-        assert "Overview" in child_titles
-        assert "Services" in child_titles
+        child_titles = [c.title for c in team.children]
+        assert "Overview" in child_titles, f"Expected 'Overview' in {child_titles}"
+        assert "Services" in child_titles, f"Expected 'Services' in {child_titles}"
+        # No extra wrapper — they are direct children of Team Alpha
+        assert len(team.children) == 2
 
     def test_page_not_in_nav_is_skipped(self, tmp_path):
         docs_dir = str(tmp_path / "docs")
