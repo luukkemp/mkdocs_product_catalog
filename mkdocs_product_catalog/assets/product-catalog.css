@@ -1,59 +1,53 @@
 /* === CATALOG GRID === */
 .catalog-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 24px;
-  padding: 24px 0;
-  justify-content: center;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.8rem;
+  padding: 1rem 0;
 }
 
 @media (min-width: 600px) {
   .catalog-grid {
-    grid-template-columns: repeat(2, minmax(200px, 1fr));
-    max-width: 800px;
-    margin: 0 auto;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   }
 }
 
-@media (min-width: 900px) {
-  .catalog-grid {
-    grid-template-columns: repeat(3, minmax(220px, 1fr));
-    max-width: 1000px;
-  }
-}
-
+/* === CATALOG BUTTON (grid card) === */
 .catalog-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: 140px;
-  padding: 16px 12px;
-  border: 2px solid var(--md-default-fg-color--lightest, #e0e0e0);
-  border-radius: 12px;
-  background: var(--md-default-bg-color, #fff);
+  min-height: 130px;
+  padding: 1rem 0.75rem;
+  border: 0.05rem solid var(--md-default-fg-color--lightest);
+  border-radius: 0.1rem;
+  background: var(--md-default-bg-color);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: box-shadow 0.15s, border-color 0.15s;
   text-align: center;
-  gap: 10px;
-  color: var(--md-default-fg-color, #333);
-  font-size: 0.85rem;
+  gap: 0.6rem;
+  color: var(--md-default-fg-color);
+  font-size: 0.75rem;
   word-break: break-word;
   position: relative;
   overflow: hidden;
+  font-family: inherit;
 }
 
+/* top accent bar — appears on hover */
 .catalog-btn::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, var(--md-primary-fg-color, #1976d2), transparent);
+  height: 0.2rem;
+  background: var(--md-primary-fg-color);
   transform: scaleX(0);
-  transition: transform 0.3s ease;
+  transform-origin: left;
+  transition: transform 0.2s ease;
 }
 
 .catalog-btn:hover::before {
@@ -61,43 +55,36 @@
 }
 
 .catalog-btn:hover {
-  box-shadow: 0 6px 20px rgba(0,0,0,0.15);
-  transform: translateY(-4px);
-  border-color: var(--md-primary-fg-color, #1976d2);
+  box-shadow: var(--md-shadow-z2);
+  border-color: var(--md-primary-fg-color);
 }
 
 .catalog-btn .catalog-icon {
-  width: 60px;
-  height: 60px;
+  width: 3rem;
+  height: 3rem;
   object-fit: contain;
-  border-radius: 8px;
-  transition: transform 0.2s ease;
-}
-
-.catalog-btn:hover .catalog-icon {
-  transform: scale(1.05);
+  border-radius: 0.1rem;
 }
 
 .catalog-btn .catalog-acronym {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 60px;
-  height: 60px;
+  width: 3rem;
+  height: 3rem;
   border-radius: 50%;
-  background: var(--md-primary-fg-color, #1976d2);
-  color: var(--md-primary-bg-color, #fff);
-  font-size: 1.3rem;
+  background: var(--md-primary-fg-color);
+  color: var(--md-primary-bg-color);
+  font-size: 1rem;
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.3);
 }
 
 .catalog-label {
   line-height: 1.4;
   font-weight: 500;
-  padding: 4px 0;
+  padding: 0.1rem 0;
 }
 
 /* === MODAL OVERLAY === */
@@ -105,138 +92,115 @@
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.5);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.54);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
   z-index: 9999;
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  padding: 1rem;
 }
 
 .catalog-overlay.active {
   display: flex;
-  animation: catalog-overlay-in 0.2s ease;
-}
-
-@keyframes catalog-overlay-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
 }
 
 /* === MODAL CONTAINER === */
 .catalog-modal {
-  background: var(--md-default-bg-color, #fff);
-  color: var(--md-default-fg-color, #333);
-  border-radius: 16px;
-  max-width: 960px;
+  background: var(--md-default-bg-color);
+  color: var(--md-default-fg-color);
+  border-radius: 0.1rem;
+  max-width: 56rem;
   width: 100%;
   max-height: 88vh;
   overflow: hidden;
   position: relative;
-  box-shadow: 0 24px 64px rgba(0,0,0,0.3), 0 4px 16px rgba(0,0,0,0.12);
+  box-shadow: var(--md-shadow-z3);
   display: flex;
   flex-direction: column;
-  animation: catalog-modal-in 0.22s cubic-bezier(0.34, 1.1, 0.64, 1);
-}
-
-@keyframes catalog-modal-in {
-  from { transform: translateY(16px) scale(0.97); opacity: 0; }
-  to   { transform: translateY(0)    scale(1);    opacity: 1; }
 }
 
 /* === MODAL HEADER === */
-/* Modal title uses a div, not a heading, to avoid MkDocs search splitting
-   the page into extra sections for every product. */
 .catalog-modal-header {
   display: flex;
   align-items: center;
-  gap: 20px;
-  padding: 28px 32px 24px;
-  background: var(--md-primary-fg-color, #1976d2);
-  border-radius: 16px 16px 0 0;
+  gap: 1rem;
+  padding: 1.2rem 1.6rem 1rem;
+  background: var(--md-primary-fg-color);
+  border-radius: 0.1rem 0.1rem 0 0;
+  flex-shrink: 0;
   position: relative;
   overflow: hidden;
-  flex-shrink: 0;
 }
 
-/* subtle depth lighting on the header */
-.catalog-modal-header::after {
+/* subtle highlight along top edge */
+.catalog-modal-header::before {
   content: '';
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(ellipse at 80% 20%, rgba(255,255,255,0.18) 0%, transparent 55%),
-    radial-gradient(ellipse at 10% 90%, rgba(0,0,0,0.12) 0%, transparent 45%);
+  background: linear-gradient(180deg, rgba(255,255,255,0.1) 0%, transparent 60%);
   pointer-events: none;
 }
 
 .catalog-modal-header .catalog-icon {
-  width: 72px;
-  height: 72px;
+  width: 3.2rem;
+  height: 3.2rem;
   object-fit: contain;
-  border-radius: 14px;
-  background: rgba(255,255,255,0.18);
-  padding: 6px;
+  border-radius: 0.1rem;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 0.3rem;
   flex-shrink: 0;
   position: relative;
-  z-index: 1;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.2);
 }
 
 .catalog-modal-header .catalog-acronym {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 72px;
-  height: 72px;
-  border-radius: 18px;
-  background: rgba(255,255,255,0.2);
-  color: #fff;
-  font-size: 1.6rem;
-  font-weight: 800;
-  letter-spacing: 0.03em;
+  width: 3.2rem;
+  height: 3.2rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  color: var(--md-primary-bg-color);
+  font-size: 1.3rem;
+  font-weight: 700;
   flex-shrink: 0;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.3);
   position: relative;
-  z-index: 1;
 }
 
 .catalog-modal-title {
   margin: 0;
-  font-size: 1.4rem;
+  font-size: 1.1rem;
   font-weight: 700;
-  line-height: 1.25;
-  color: #fff;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  line-height: 1.3;
+  color: var(--md-primary-bg-color);
   position: relative;
-  z-index: 1;
 }
 
 /* === ACTION BUTTONS (share + close) === */
 .catalog-modal-actions {
   position: absolute;
-  top: 12px;
-  right: 14px;
+  top: 0.5rem;
+  right: 0.6rem;
   display: flex;
-  gap: 6px;
-  z-index: 2;
+  gap: 0.2rem;
+  z-index: 1;
 }
 
 .catalog-modal-close,
 .catalog-modal-share {
   cursor: pointer;
-  background: rgba(255,255,255,0.15);
-  border: 1px solid rgba(255,255,255,0.3);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  border: none;
+  color: var(--md-primary-bg-color);
   line-height: 1;
-  padding: 5px 8px;
-  border-radius: 6px;
-  transition: background 0.15s;
+  padding: 0.3rem 0.4rem;
+  border-radius: 0.1rem;
+  transition: background 0.1s;
 }
 
 .catalog-modal-close {
-  font-size: 1.3rem;
+  font-size: 1.2rem;
 }
 
 .catalog-modal-share {
@@ -246,24 +210,24 @@
 
 .catalog-modal-close:hover,
 .catalog-modal-share:hover {
-  background: rgba(255,255,255,0.3);
+  background: rgba(255, 255, 255, 0.25);
 }
 
-/* Tooltip shown after copying */
+/* "Copied!" tooltip */
 .catalog-modal-share::after {
   content: attr(aria-label);
   position: absolute;
-  bottom: calc(100% + 8px);
+  bottom: calc(100% + 0.4rem);
   right: 0;
-  background: rgba(0,0,0,0.8);
-  color: #fff;
-  font-size: 0.7rem;
+  background: var(--md-default-fg-color);
+  color: var(--md-default-bg-color);
+  font-size: 0.65rem;
   white-space: nowrap;
-  padding: 4px 8px;
-  border-radius: 5px;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.1rem;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.15s;
+  transition: opacity 0.12s;
 }
 
 .catalog-modal-share--copied::after {
@@ -272,82 +236,73 @@
 
 /* === MODAL BODY === */
 .catalog-modal-body {
-  padding: 24px 28px 28px;
-  max-height: calc(88vh - 130px);
+  padding: 1rem 1.2rem 1.4rem;
+  max-height: calc(88vh - 5rem);
   overflow-y: auto;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
+  gap: 0.8rem;
 }
 
 @media (max-width: 600px) {
   .catalog-modal-body {
     grid-template-columns: 1fr;
-    padding: 16px 18px 20px;
+    padding: 0.8rem;
   }
 }
 
 .catalog-modal-column {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 0.6rem;
 }
 
-/* single-column layout when right sections are absent */
+/* single-column when right column absent */
 .catalog-modal-column:only-child {
   grid-column: 1 / -1;
 }
 
-/* === SECTIONS === */
+/* === SECTIONS (Material admonition-style) === */
 .catalog-modal-section {
-  padding: 14px 16px 14px 20px;
-  border-radius: 10px;
-  border: 1px solid var(--md-default-fg-color--lightest, #e0e0e0);
-  background: var(--md-default-bg-color, #fff);
-  position: relative;
-  break-inside: avoid;
-}
-
-/* colored left accent bar */
-.catalog-modal-section::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 10px;
-  bottom: 10px;
-  width: 3px;
-  border-radius: 0 3px 3px 0;
-  background: var(--md-primary-fg-color, #1976d2);
-  opacity: 0.55;
+  border-radius: 0.1rem;
+  border: 0.05rem solid var(--md-default-fg-color--lightest);
+  border-left: 0.2rem solid var(--md-primary-fg-color);
+  background: var(--md-default-bg-color);
+  overflow: hidden;
 }
 
 .catalog-modal-section-title {
+  display: block;
+  padding: 0.4rem 0.7rem;
+  background: var(--md-accent-fg-color--transparent, rgba(68, 138, 255, 0.08));
+  font-size: 0.65rem;
   font-weight: 700;
-  font-size: 0.68rem;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--md-primary-fg-color, #1976d2);
-  margin-bottom: 8px;
-  opacity: 0.85;
+  letter-spacing: 0.08em;
+  color: var(--md-primary-fg-color);
+  border-bottom: 0.05rem solid var(--md-default-fg-color--lightest);
 }
 
-.catalog-modal-section-content {
-  font-size: 0.9rem;
-  line-height: 1.6;
-  color: var(--md-default-fg-color, #333);
+.catalog-modal-section-content,
+.catalog-modal-section > p,
+.catalog-modal-section > dl,
+.catalog-modal-section > .catalog-doc-link,
+.catalog-modal-section > .catalog-kv {
+  padding: 0.5rem 0.7rem;
+  margin: 0;
 }
 
 .catalog-modal-section p {
-  margin: 4px 0;
-  font-size: 0.88rem;
-  line-height: 1.55;
-  color: var(--md-default-fg-color, #333);
+  margin: 0.2rem 0;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: var(--md-default-fg-color);
 }
 
 .catalog-modal-section a {
-  color: var(--md-typeset-a-color, #1976d2);
-  word-break: break-all;
+  color: var(--md-typeset-a-color, var(--md-primary-fg-color));
   text-decoration: none;
+  word-break: break-word;
 }
 
 .catalog-modal-section a:hover {
@@ -356,23 +311,18 @@
 
 /* === DOC / REPO LINKS === */
 .catalog-doc-link {
-  padding: 7px 0 5px;
-  border-bottom: 1px solid var(--md-default-fg-color--lightest, #e0e0e0);
-}
-
-.catalog-doc-link:first-child {
-  padding-top: 0;
+  padding: 0.4rem 0.7rem;
+  border-bottom: 0.05rem solid var(--md-default-fg-color--lightest);
 }
 
 .catalog-doc-link:last-child {
   border-bottom: none;
-  padding-bottom: 0;
 }
 
 .catalog-doc-link a {
-  color: var(--md-typeset-a-color, #1976d2);
+  color: var(--md-typeset-a-color, var(--md-primary-fg-color));
   font-weight: 500;
-  font-size: 0.87rem;
+  font-size: 0.8rem;
   text-decoration: none;
   word-break: break-word;
 }
@@ -382,23 +332,23 @@
 }
 
 .catalog-doc-description {
-  font-size: 0.75rem;
-  color: var(--md-default-fg-color--light, #666);
-  margin-top: 3px;
-  font-style: italic;
+  font-size: 0.7rem;
+  color: var(--md-default-fg-color--light);
+  margin-top: 0.15rem;
 }
 
-/* === METADATA === */
+/* === METADATA KEY/VALUE === */
 .catalog-kv {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 5px 14px;
-  font-size: 0.85rem;
+  gap: 0.3rem 0.8rem;
+  font-size: 0.8rem;
+  padding: 0.5rem 0.7rem;
 }
 
 .catalog-kv dt {
   font-weight: 600;
-  color: var(--md-default-fg-color--light, #666);
+  color: var(--md-default-fg-color--light);
   white-space: nowrap;
 }
 
@@ -411,17 +361,18 @@
 .catalog-tag {
   display: inline-flex;
   align-items: center;
-  padding: 3px 10px;
-  border-radius: 20px;
-  background: rgba(25, 118, 210, 0.08);
-  color: var(--md-primary-fg-color, #1976d2);
-  font-size: 0.78rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 2rem;
+  background: var(--md-accent-fg-color--transparent, rgba(68, 138, 255, 0.1));
+  color: var(--md-primary-fg-color);
+  font-size: 0.7rem;
   font-weight: 500;
-  margin: 3px 3px 3px 0;
-  border: 1px solid rgba(25, 118, 210, 0.2);
+  margin: 0.15rem 0.15rem 0.15rem 0;
+  border: 0.05rem solid var(--md-primary-fg-color);
+  opacity: 0.85;
 }
 
-/* === SEARCH INDEX (hidden) === */
+/* === HIDDEN SEARCH INDEX === */
 .catalog-search-index {
   display: none;
 }

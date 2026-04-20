@@ -1,6 +1,12 @@
 site_name: Test Site (Multirepo)
 docs_dir: docs
 
+theme:
+  name: material
+  palette:
+    primary: indigo
+    accent: indigo
+
 plugins:
   - search
   - product-catalog
@@ -11,4 +17,5 @@ plugins:
 nav:
   - Home: index.md
   - Local Services: services.md
-  - Team Alpha: '!import https://github.com/tomasz-krakowski-asml/mkdocs-catalog-test-fixture?branch=main'
+  - Global category:
+    - Team Alpha: '!import https://github.com/tomasz-krakowski-asml/mkdocs-catalog-test-fixture?branch=main'
