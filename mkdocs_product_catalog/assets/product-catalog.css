@@ -206,6 +206,9 @@
 .catalog-modal-share {
   font-size: 1rem;
   position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .catalog-modal-close:hover,
@@ -213,11 +216,11 @@
   background: rgba(255, 255, 255, 0.25);
 }
 
-/* "Copied!" tooltip */
+/* "Copied!" tooltip — appears below so it isn't clipped by the modal top edge */
 .catalog-modal-share::after {
   content: attr(aria-label);
   position: absolute;
-  bottom: calc(100% + 0.4rem);
+  top: calc(100% + 0.4rem);
   right: 0;
   background: var(--md-default-fg-color);
   color: var(--md-default-bg-color);
@@ -228,6 +231,7 @@
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.12s;
+  z-index: 2;
 }
 
 .catalog-modal-share--copied::after {
