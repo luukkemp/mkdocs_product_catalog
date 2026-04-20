@@ -149,7 +149,10 @@ def render_catalog_html(products: list, id_prefix: str = "") -> str:
             f'<div id="catalog-overlay-{uid}" class="catalog-overlay"'
             f" onclick=\"if(event.target===this)closeCatalogModal('{uid}')\">"
             f'<div class="catalog-modal">'
-            f'  <button class="catalog-modal-close" onclick="closeCatalogModal(\'{uid}\')" aria-label="Close">&times;</button>'
+            f'  <div class="catalog-modal-actions">'
+            f'    <button class="catalog-modal-share" onclick="copyCatalogLink(this)" aria-label="Copy link">&#128279;</button>'
+            f'    <button class="catalog-modal-close" onclick="closeCatalogModal(\'{uid}\')" aria-label="Close">&times;</button>'
+            f'  </div>'
             f'  <div class="catalog-modal-header">'
             f"    {modal_icon_html}"
             f'    <div class="catalog-modal-title">{title}</div>'

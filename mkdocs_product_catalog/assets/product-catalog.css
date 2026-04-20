@@ -129,23 +129,59 @@
   flex-direction: column;
 }
 
-.catalog-modal-close {
+.catalog-modal-actions {
   position: absolute;
-  top: 12px;
-  right: 16px;
-  font-size: 1.5rem;
+  top: 10px;
+  right: 12px;
+  display: flex;
+  gap: 4px;
+  z-index: 1;
+}
+
+.catalog-modal-close,
+.catalog-modal-share {
   cursor: pointer;
   background: none;
   border: none;
   color: var(--md-primary-bg-color, #fff);
   line-height: 1;
-  padding: 4px;
+  padding: 4px 6px;
   border-radius: 4px;
-  z-index: 1;
 }
 
-.catalog-modal-close:hover {
+.catalog-modal-close {
+  font-size: 1.5rem;
+}
+
+.catalog-modal-share {
+  font-size: 1.1rem;
+  position: relative;
+}
+
+.catalog-modal-close:hover,
+.catalog-modal-share:hover {
   background: rgba(255,255,255,0.2);
+}
+
+/* Tooltip shown after copying */
+.catalog-modal-share::after {
+  content: attr(aria-label);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  right: 0;
+  background: rgba(0,0,0,0.75);
+  color: #fff;
+  font-size: 0.7rem;
+  white-space: nowrap;
+  padding: 3px 8px;
+  border-radius: 4px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.catalog-modal-share--copied::after {
+  opacity: 1;
 }
 
 /* Modal title uses a div, not a heading, to avoid MkDocs search splitting
